@@ -5,5 +5,5 @@ module-template: ! 'module MODULE_NAME where
 
 '
 modules:
-  Main(src/Main.hs):
-    filename: src/Main.hs
+  AdaBoost:
+    filename: src/AdaBoost.hs

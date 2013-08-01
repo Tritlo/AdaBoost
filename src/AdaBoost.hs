@@ -1,6 +1,4 @@
--- | Main entry point to the application.
-
-module Main where
+module AdaBoost (adaBoost) where
 
 initialWeights :: [a] -> [Float]
 initialWeights ex = replicate (length ex) (1/ (fromIntegral (length ex)))
@@ -48,9 +46,3 @@ adaLoop examples l w hypos z k = let h = (l examples w)
 
 adaBoost :: Eq b => [a] -> ([a] -> [Float] -> (a -> b))-> Int -> (a -> b)
 adaBoost examples l k = adaLoop examples l (initialWeights examples) [] [] k
-    
-
--- | The main entry point.
-main :: IO ()
-main = do
-  putStrLn "Welcome to the FP Haskell Center!"
