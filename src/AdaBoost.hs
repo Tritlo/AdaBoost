@@ -1,9 +1,10 @@
-module AdaBoost where
+module AdaBoost (adaBoost) where
 
 import Data.List (delete, maximumBy)
 import Data.Ord (comparing)
 
 type Predictor a b = a -> b
+type Label a b = a -> b
 type Learner a b = [a] -> Weights -> Predictor a b
 type Weights = [Float]
 
@@ -30,9 +31,6 @@ listToWeightList :: Eq a => [(a,Float)] -> [(a,Float)] -> [(a,Float)]
 listToWeightList [] wL = wL
 listToWeightList lis wL = listToWeightList (tail lis) (updateWeightList (head lis) wL)
 
-label :: Eq b => a -> b
-label example = undefined
-
 
 err :: [Float] -> [Bool] -> Float
 err weights predicts = sum (falseWeights weights predicts)
@@ -44,11 +42,11 @@ falseWeights :: [Float] -> [Bool] -> [Float]
 falseWeights weights predicts = map (\i -> weights !! i) (falseIndices predicts)
 
 
-correctPredict :: (Eq b) => Predictor a b -> a -> Bool
-correctPredict h example = h example  == label example
+correctPredict :: (Eq b) => Predictor a b -> Label a b -> a -> Bool
+correctPredict h label example = h example  == label example
 
-predictions :: Eq b => Predictor a b -> [a] -> [Bool]
-predictions h examples = map (correctPredict h) examples
+predictions :: Eq b => Predictor a b -> [a] ->  Label a b -> [Bool]
+predictions h examples label = map (correctPredict label h) examples
 
 updateWeights :: Predictor a b -> [a] -> [Float] -> [Bool] -> Float -> [Float]
 updateWeights h examples w p err = map (updW w p err) $ enumFromTo 0 (length examples -1)
@@ -57,16 +55,16 @@ updateWeights h examples w p err = map (updW w p err) $ enumFromTo 0 (length exa
                                      updW w p err i = if p !! i then (w !! i) * (err/(1-err)) else w !! i
                                      
 
-adaLoop :: Eq b => [a] -> Learner a b -> [Float] -> [Predictor a b] -> [Float] -> Int -> Predictor a b
-adaLoop examples l w h z 0 = weightedMajority (reverse h) (reverse z)
-adaLoop examples l w hypos z k = let h = l examples w
-                                     p = predictions h examples    
-                                     nH = h : hypos
-                                     e = err w p    
-                                     updW = updateWeights h examples w p e
-                                     nW = map ( \w -> w / sum updW) updW
-                                     nZ = log ((1 - e) / e) : z
-                                     in adaLoop examples l nW nH nZ (k-1)
+adaLoop :: Eq b => [a] -> Label a b -> Learner a b -> [Float] -> [Predictor a b] -> [Float] -> Int -> Predictor a b
+adaLoop examples label l w h z 0 = weightedMajority (reverse h) (reverse z)
+adaLoop examples label l w hypos z k = let h = l examples w
+                                           p = predictions h examples label 
+                                           nH = h : hypos
+                                           e = err w p    
+                                           updW = updateWeights h examples w p e
+                                           nW = map ( \w -> w / sum updW) updW
+                                           nZ = log ((1 - e) / e) : z
+                                           in adaLoop examples label l nW nH nZ (k-1)
 
-adaBoost :: Eq b => [a] -> Learner a b -> Int -> Predictor a b
-adaBoost examples l k = adaLoop examples l (initialWeights examples) [] [] k
+adaBoost :: Eq b => [a] -> Label a b -> Learner a b -> Int -> Predictor a b
+adaBoost examples label l k = adaLoop examples label l (initialWeights examples) [] [] k
